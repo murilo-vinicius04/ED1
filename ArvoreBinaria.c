@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "ArvoreBinaria.h" //inclui os Protótipos
 
 ArvBin* cria_ArvBin(){
@@ -25,7 +26,16 @@ void libera_ArvBin(ArvBin* raiz){
     free(raiz);//libera a raiz
 }
 
-int insere_ArvBin(ArvBin* raiz, Tipo_Dado valor){
+// Comparison functions
+int compara_us(char *a, char *b) {
+    return strcmp(a, b);
+}
+
+int compara_pt(char *a, char *b) {
+    return strcmp(a, b);
+}
+
+int insere_ArvBin(ArvBin* raiz, Tipo_Dado valor, int (*compara)(char*, char*)) {
     if(raiz == NULL)
         return 0;
     struct NO* novo;
@@ -43,17 +53,17 @@ int insere_ArvBin(ArvBin* raiz, Tipo_Dado valor){
         struct NO* ant = NULL;
         while(atual != NULL){
             ant = atual;
-            if(valor == atual->info){
+            if(compara(valor.us, atual->info.us) == 0){
                 free(novo);
                 return 0;//elemento já existe
             }
 
-            if(valor > atual->info)
+            if(compara(valor.us, atual->info.us) > 0)
                 atual = atual->dir;
             else
                 atual = atual->esq;
         }
-        if(valor > ant->info)
+        if(compara(valor.us, ant->info.us) > 0)
             ant->dir = novo;
         else
             ant->esq = novo;
@@ -85,13 +95,14 @@ struct NO* remove_atual(struct NO* atual) {
     return no2;
 }
 // http://www.ime.usp.br/~pf/algoritmos/aulas/binst.html
-int remove_ArvBin(ArvBin *raiz, Tipo_Dado valor){
+int remove_ArvBin(ArvBin *raiz, Tipo_Dado valor, int (*compara)(char*, char*)) {
     if(raiz == NULL)
         return 0;
     struct NO* ant = NULL;
     struct NO* atual = *raiz;
     while(atual != NULL){
-        if(valor == atual->info){
+        int cmp = compara(valor.us, atual->info.us);
+        if(cmp == 0){
             if(atual == *raiz)
                 *raiz = remove_atual(atual);
             else{
@@ -103,7 +114,7 @@ int remove_ArvBin(ArvBin *raiz, Tipo_Dado valor){
             return 1;
         }
         ant = atual;
-        if(valor > atual->info)
+        if(cmp > 0)
             atual = atual->dir;
         else
             atual = atual->esq;
@@ -142,20 +153,22 @@ int altura_ArvBin(ArvBin *raiz){
         return(alt_dir + 1);
 }
 
-int consulta_ArvBin(ArvBin *raiz, int valor){
+int consulta_ArvBin(ArvBin *raiz, char *chave, Tipo_Dado *resultado, int (*compara)(char*, char*)) {
     if(raiz == NULL)
         return 0;
     struct NO* atual = *raiz;
     while(atual != NULL){
-        if(valor == atual->info){
-            return 1;
+        int cmp = compara(chave, atual->info.us);
+        if(cmp == 0){
+            *resultado = atual->info;
+            return 1; // Found
         }
-        if(valor > atual->info)
+        if(cmp > 0)
             atual = atual->dir;
         else
             atual = atual->esq;
     }
-    return 0;
+    return 0; // Not found
 }
 
 void preOrdem_ArvBin(ArvBin *raiz)
@@ -163,7 +176,7 @@ void preOrdem_ArvBin(ArvBin *raiz)
     if(raiz == NULL)
         return;
     if(*raiz != NULL){
-        printf("%d\n",(*raiz)->info);          // Info é Int
+        printf("US: %s, PT: %s\n", (*raiz)->info.us, (*raiz)->info.pt);
         preOrdem_ArvBin(&((*raiz)->esq));
         preOrdem_ArvBin(&((*raiz)->dir));
     }
@@ -175,7 +188,7 @@ void emOrdem_ArvBin(ArvBin *raiz)
         return;
     if(*raiz != NULL){
         emOrdem_ArvBin(&((*raiz)->esq));
-        printf("%d\n",(*raiz)->info);          // Info é Int
+        printf("US: %s, PT: %s\n", (*raiz)->info.us, (*raiz)->info.pt);
         emOrdem_ArvBin(&((*raiz)->dir));
     }
 }
@@ -187,27 +200,24 @@ void posOrdem_ArvBin(ArvBin *raiz)
     if(*raiz != NULL){
         posOrdem_ArvBin(&((*raiz)->esq));
         posOrdem_ArvBin(&((*raiz)->dir));
-        printf("%d\n",(*raiz)->info);         // Info é Int
+        printf("US: %s, PT: %s\n", (*raiz)->info.us, (*raiz)->info.pt);
     }
 }
 
 // Funcoes Adicionais de Arvore
 
-void Procura_preOrdem_ArvBin(ArvBin *raiz, Tipo_Dado valor, int *achou)
-{
+void Procura_preOrdem_ArvBin(ArvBin *raiz, Tipo_Dado valor, int *achou, int (*compara)(char*, char*)) {
     if(raiz == NULL)
         return;
     if (*achou)
         return;
-    if(*raiz != NULL)
-    {
-        if (valor == (*raiz)->info)
-        {
-            printf("Achou: %d! \n",(*raiz)->info);   // Info é Int
-            *achou=1;
+    if(*raiz != NULL) {
+        if (compara(valor.us, (*raiz)->info.us) == 0) {
+            printf("Achou: %s! \n",(*raiz)->info.us);   // Info é String
+            *achou = 1;
         }
-        Procura_preOrdem_ArvBin(&((*raiz)->esq),valor,achou);
-        Procura_preOrdem_ArvBin(&((*raiz)->dir),valor,achou);
+        Procura_preOrdem_ArvBin(&((*raiz)->esq), valor, achou, compara);
+        Procura_preOrdem_ArvBin(&((*raiz)->dir), valor, achou, compara);
     }
 }
 
@@ -218,12 +228,12 @@ void Exibe_emOrdem_ArvBin(ArvBin *raiz)
 
     if(*raiz != NULL)
     {
-        printf("Atual: %d - Vai para Esquerda \n",(*raiz)->info);   // Info é Int
+        printf("Atual: US: %s, PT: %s - Vai para Esquerda \n", (*raiz)->info.us, (*raiz)->info.pt);
         Exibe_emOrdem_ArvBin(&((*raiz)->esq));
-        printf("Dado : %d \n",(*raiz)->info);
-        printf("Atual: %d - Vai para Direita \n",(*raiz)->info);    // Info é Int
+        printf("Dado : US: %s, PT: %s \n", (*raiz)->info.us, (*raiz)->info.pt);
+        printf("Atual: US: %s, PT: %s - Vai para Direita \n", (*raiz)->info.us, (*raiz)->info.pt);
         Exibe_emOrdem_ArvBin(&((*raiz)->dir));
-        printf("Feito(%d) \n",(*raiz)->info);                       // Info é Int
+        printf("Feito(US: %s, PT: %s) \n", (*raiz)->info.us, (*raiz)->info.pt);
     }
     else
         printf("NULL\n");

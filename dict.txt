@@ -1,0 +1,6 @@
+the,o+a,#
+book,livro,#
+is,esta,#
+on,sobre,#
+table,mesa,#
+#
